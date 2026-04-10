@@ -16,7 +16,7 @@ class Alert(Base):
     __tablename__ = "alerts"
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     class_name: Mapped[str] = mapped_column(String)
     confidence: Mapped[float] = mapped_column(Float)
     bbox: Mapped[dict] = mapped_column(JSON)
