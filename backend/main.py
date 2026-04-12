@@ -8,7 +8,6 @@ import cv2
 import base64
 import json
 import asyncio
-import traceback
 
 app = FastAPI(title="SentinelVision")
 
@@ -33,8 +32,6 @@ async def stream_ws(websocket: WebSocket):
     await websocket.accept()
 
     reader = RTSPStreamReader(source=0, target_fps=10)
-    connected = reader.connect()
-    print(f"Camera connected: {connected}") 
     if not reader.connect():
         await websocket.send_text(json.dumps({"error": "Stream unavailable"}))
         await websocket.close()
@@ -44,7 +41,6 @@ async def stream_ws(websocket: WebSocket):
         async with AsyncSessionLocal() as db:
             while True:
                 ret, frame = reader.read_frame()
-                print(f"Frame ret: {ret}, frame is None: {frame is None}")
                 if not ret:
                     break
 
@@ -54,7 +50,6 @@ async def stream_ws(websocket: WebSocket):
                 frame_b64 = base64.b64encode(buffer).decode("utf-8")
 
                 threats = [d for d in detections if d.is_threat]
-                print(f"Threats detected: {len(threats)}")
 
                 for threat in threats:
                     alert = Alert(
@@ -87,8 +82,5 @@ async def stream_ws(websocket: WebSocket):
 
     except WebSocketDisconnect:
         pass
-    except Exception as e:
-        print(f"ERROR: {e}")
-        traceback.print_exc()
     finally:
         reader.release()
