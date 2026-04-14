@@ -31,7 +31,7 @@ async def health():
 async def stream_ws(websocket: WebSocket):
     await websocket.accept()
 
-    reader = RTSPStreamReader(source=0, target_fps=10)
+    reader = RTSPStreamReader(source=1, target_fps=10)
     if not reader.connect():
         await websocket.send_text(json.dumps({"error": "Stream unavailable"}))
         await websocket.close()
