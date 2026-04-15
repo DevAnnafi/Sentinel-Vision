@@ -1,5 +1,6 @@
 import FeedGrid from "@/components/FeedGrid"
 import AlertFeed from "@/components/AlertFeed"
+import ZoneEditor from "@/components/ZoneEditor"
 
 export default function Home() {
     return (
@@ -12,8 +13,9 @@ export default function Home() {
                     <div className="col-span-2">
                         <FeedGrid />
                     </div>
-                    <div className="col-span-1">
+                    <div className="col-span-1 flex flex-col gap-4">
                         <AlertFeed />
+                        <ZoneEditor />
                     </div>
                 </div>
             </div>

@@ -22,3 +22,10 @@ export interface Alert {
     camera_id: string
     frame_id: number
 }
+
+export interface Zone {
+    id: string
+    name: string
+    polygon: [number, number][]
+    active: boolean
+}
