@@ -5,6 +5,7 @@ from streams.ingestion import RTSPStreamReader
 from api.routes.alerts import router as alerts_router
 from models.db import Alert, AsyncSessionLocal
 from api.routes.zones import router as zones_router
+from integrations.siem import SIEMExporter
 import cv2
 import base64
 import json
@@ -21,6 +22,7 @@ app.add_middleware(
 )
 
 detector = ThreatDetector()
+siem = SIEMExporter()
 
 app.include_router(alerts_router)
 app.include_router(zones_router)
@@ -64,6 +66,7 @@ async def stream_ws(websocket: WebSocket):
                         frame_id=threat.frame_id
                     )
                     db.add(alert)
+                    await siem.export(alert)  
                 await db.commit()
 
                 payload = {
