@@ -55,6 +55,7 @@ async def stream_ws(websocket: WebSocket):
 
                 threats = [d for d in detections if d.is_threat]
 
+                alerts_to_export = []
                 for threat in threats:
                     alert = Alert(
                         class_name=threat.class_name,
@@ -66,7 +67,11 @@ async def stream_ws(websocket: WebSocket):
                         frame_id=threat.frame_id
                     )
                     db.add(alert)
-                    await siem.export(alert)  
+                    alerts_to_export.append(alert)
+                await db.flush()
+                for alert in alerts_to_export:
+                    await siem.export(alert)
+
                 await db.commit()
 
                 payload = {
