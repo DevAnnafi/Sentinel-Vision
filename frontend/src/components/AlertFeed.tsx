@@ -8,9 +8,15 @@ export default function AlertFeed(){
     const [alerts, setAlerts] = useState<Alert[]>([])
 
     useEffect(() => {
+    const fetchAlerts = () => {
         fetch("http://127.0.0.1:8000/api/alerts")
-        .then(res => res.json())
-        .then(data => setAlerts(data))
+            .then(res => res.json())
+            .then(data => setAlerts(data.slice(-50).reverse()))
+    }
+
+    fetchAlerts()
+    const interval = setInterval(fetchAlerts, 5000)
+    return () => clearInterval(interval)
     }, [])
 
     return (
