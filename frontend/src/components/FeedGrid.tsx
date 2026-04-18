@@ -1,9 +1,10 @@
 'use client';
 
 import { useStream } from "@/hooks/useStream"
+import { WS_URL } from "@/lib/config"
 
 export default function FeedGrid() {
-    const { payload, connected, error } = useStream("ws://127.0.0.1:8000/ws/stream")
+    const { payload, connected, error } = useStream(`${WS_URL}/ws/stream`)
 
     return (
         <div className="flex flex-col gap-4 p-4">

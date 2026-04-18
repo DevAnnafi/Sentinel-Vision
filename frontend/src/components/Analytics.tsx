@@ -3,15 +3,16 @@
 import { useState, useEffect } from "react"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { Alert } from "@/lib/types"
+import { API_URL, apiHeaders } from "@/lib/config"
 
 export default function Analytics() {
     const [alerts, setAlerts] = useState<Alert[]>([])
 
     useEffect(() => {
         const fetch_alerts = () => {
-            fetch("http://127.0.0.1:8000/api/alerts")
+            fetch(`${API_URL}/api/alerts`, { headers: apiHeaders })
                 .then(res => res.json())
-                .then(data => setAlerts(data))
+                .then(data => setAlerts(Array.isArray(data) ? data : []))
         }
         fetch_alerts()
         const interval = setInterval(fetch_alerts, 5000)

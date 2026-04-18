@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { Zone } from "@/lib/types"
+import { API_URL, apiHeaders } from "@/lib/config"
 
 export default function ZoneEditor() {
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -32,9 +33,9 @@ export default function ZoneEditor() {
             polygon: points,
             active: true
         }
-        await fetch("http://127.0.0.1:8000/api/zones", {
+        await fetch(`${API_URL}/api/zones`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: apiHeaders,
             body: JSON.stringify(zone)
         })
         setSaved(true)
