@@ -6,6 +6,8 @@ from api.routes.alerts import router as alerts_router
 from models.db import Alert, AsyncSessionLocal
 from api.routes.zones import router as zones_router
 from integrations.siem import SIEMExporter
+from datetime import datetime, timezone
+from collections import defaultdict
 import cv2
 import base64
 import json
@@ -24,12 +26,18 @@ app.add_middleware(
 detector = ThreatDetector()
 siem = SIEMExporter()
 
+alert_cooldowns: dict[str, datetime] = defaultdict(lambda: datetime.min.replace(tzinfo=timezone.utc))
+COOLDOWN_SECONDS = 5
+
+threat_streak: dict[str, int] = defaultdict(int)
+STREAK_THRESHOLD = 3
+
 app.include_router(alerts_router)
 app.include_router(zones_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "online", "model": "yolov8n"}
+    return {"status": "online", "model": "sentinel-v1"}
 
 @app.websocket("/ws/stream")
 async def stream_ws(websocket: WebSocket):
@@ -55,8 +63,29 @@ async def stream_ws(websocket: WebSocket):
 
                 threats = [d for d in detections if d.is_threat]
 
+                # Update streaks
+                detected_classes = {d.class_name for d in detections if d.is_threat}
+                for cls in list(threat_streak.keys()):
+                    if cls not in detected_classes:
+                        threat_streak[cls] = 0
+                for cls in detected_classes:
+                    threat_streak[cls] += 1
+
+                # Save alerts with cooldown + streak suppression
                 alerts_to_export = []
+                now = datetime.now(timezone.utc)
+
                 for threat in threats:
+                    last_alert_time = alert_cooldowns[threat.class_name]
+                    seconds_since = (now - last_alert_time).total_seconds()
+
+                    if seconds_since < COOLDOWN_SECONDS:
+                        continue
+
+                    if threat_streak[threat.class_name] != STREAK_THRESHOLD:
+                        continue
+
+                    alert_cooldowns[threat.class_name] = now
                     alert = Alert(
                         class_name=threat.class_name,
                         confidence=threat.confidence,
@@ -68,11 +97,12 @@ async def stream_ws(websocket: WebSocket):
                     )
                     db.add(alert)
                     alerts_to_export.append(alert)
-                await db.flush()
-                for alert in alerts_to_export:
-                    await siem.export(alert)
 
-                await db.commit()
+                if alerts_to_export:
+                    await db.flush()
+                    for alert in alerts_to_export:
+                        await siem.export(alert)
+                    await db.commit()
 
                 payload = {
                     "frame": frame_b64,
