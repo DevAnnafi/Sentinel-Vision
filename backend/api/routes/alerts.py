@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from models.db import Alert, AsyncSessionLocal
 from typing import AsyncGenerator
 from core.auth import verify_api_key
+from core.limiter import limiter
 
 router = APIRouter()
 
@@ -12,7 +13,9 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
         yield session
 
 @router.get("/api/alerts")
+@limiter.limit("30/minute")
 async def get_alerts(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     api_key: str = Depends(verify_api_key)
 ):
@@ -21,7 +24,9 @@ async def get_alerts(
     return alerts
 
 @router.post("/api/alerts")
+@limiter.limit("10/minute")
 async def create_alert(
+    request: Request,
     alert_data: dict,
     db: AsyncSession = Depends(get_db),
     api_key: str = Depends(verify_api_key)

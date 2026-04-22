@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 from core.detector import ThreatDetector
 from streams.ingestion import RTSPStreamReader
@@ -8,12 +8,20 @@ from api.routes.zones import router as zones_router
 from integrations.siem import SIEMExporter
 from datetime import datetime, timezone
 from collections import defaultdict
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 import cv2
 import base64
 import json
 import asyncio
 
+limiter = Limiter(key_func=get_remote_address)
+
 app = FastAPI(title="SentinelVision")
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,7 +35,7 @@ detector = ThreatDetector()
 siem = SIEMExporter()
 
 alert_cooldowns: dict[str, datetime] = defaultdict(lambda: datetime.min.replace(tzinfo=timezone.utc))
-COOLDOWN_SECONDS = 5
+COOLDOWN_SECONDS = 30
 
 threat_streak: dict[str, int] = defaultdict(int)
 STREAK_THRESHOLD = 3
